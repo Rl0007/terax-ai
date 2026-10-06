@@ -1,0 +1,37 @@
+name: Build macOS beta
+
+on:
+  push:
+    branches: [build/macos-beta]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build Terax.app
+        env:
+          TERAX_CLI_TARGET: aarch64-apple-darwin
+        run: pnpm tauri build --target aarch64-apple-darwin --bundles app --config '{"bundle":{"createUpdaterArtifacts":false}}'
+
+      - name: Zip app
+        run: ditto -c -k --keepParent src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Terax.app Terax.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: terax-macos-arm64
+          path: Terax.zip
